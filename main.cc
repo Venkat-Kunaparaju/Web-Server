@@ -12,6 +12,7 @@
 
 //Constants
 #define PORT 1500
+#define MAXQ 5
 int main() {
 
     //Set address
@@ -24,12 +25,35 @@ int main() {
     //Define master socket
     int masterSocket;
     if ((masterSocket = socket(AF_INET, SOCK_STREAM, 0)) <= 0) {
-        perror("socket");
+        perror("Master socket error");
         exit( -1 );
     }
 
     //Add Socket options
     int option = 1;
-    setsockopt(masterSocket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
-		       (char *) &option, sizeof( int ) );
+    if ((setsockopt(masterSocket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
+		    (char *) &option, sizeof( int ) )) <= 0) {
+        perror("Socket options error");
+        exit(-1);
+    }
+
+    //Bind address and port to master socket
+    if (bind( masterSocket, (struct sockaddr *)&address, 
+            sizeof(address) ) <= 0) {
+        perror("Binding error");
+        exit(-1);
+    }
+
+    //Set socket in listen mode to read user requests
+    if (listen(masterSocket, MAXQ) <= 0) {
+        perror("Listening error");
+        exit(-1);
+    }
+
+    
+
+
+
+    
+
 }
