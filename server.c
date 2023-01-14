@@ -118,22 +118,9 @@ void processRequest(int socket) {
     
     int fd = -1;
     char *type = (char *)malloc(MAXTYPELENGTH);
-    //Set file to home directory if first request
-    if (strcmp("/", file) == 0) {
-        fd = open("home.html", O_RDONLY, 0664);
-        strcpy(type, "text/html");
-    }
     fprintf(stderr, "%s", file);
-
-
-    //If name request then redirect to message board page
-    char buff[7];
-    memcpy(buff, &file[1], 6);
-    buff[6] = '\0';
-    if (strcmp("?name=", buff) == 0) {
-        fd = open("board.html", O_RDONLY, 0664);
-        strcpy(type, "text/html");
-    }
+    fd = open("board.html", O_RDONLY, 0664);
+    strcpy(type, "text/html");
 
     //Execute request by creating a child process and wait before exiting to ensure request is met before closing socket
     int ret = fork();
