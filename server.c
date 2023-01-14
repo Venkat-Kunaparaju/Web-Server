@@ -18,9 +18,13 @@
 #define MAXTOPICLENGTH 50
 #define MAXUSERNAMELENGTH 50
 #define MAXMESSEAGELENGTH 500
-#define BOARDSIZE 649
+#define MAXOUTPUTLENGTH 1000
+#define BOARDSIZE 644
+#define MAXMESSAGES 100
 
 char *clrf = "\r\n";
+char *messages[MAXMESSAGES];
+int numOfMsgs = 0;
 
 pthread_mutex_t mutex;
 
@@ -28,7 +32,10 @@ void processRequest(int);
 void threadRequest(int);
 
 int main() {
-    
+    if (pthread_mutex_init(&mutex, NULL) != 0) {
+        printf("\n mutex init has failed\n");
+        return 1;
+    }
 
     //Set address
     struct sockaddr_in address; 
@@ -97,8 +104,10 @@ int main() {
 
 }
 void threadRequest(int socket) {
+    pthread_mutex_lock(&mutex);
     processRequest(socket);
     shutdown(socket, SHUT_RDWR);
+    pthread_mutex_unlock(&mutex);
 }
 
 void processRequest(int socket) {
@@ -125,8 +134,9 @@ void processRequest(int socket) {
     int fd = -1;
     char *type = (char *)malloc(MAXTYPELENGTH);
     //fprintf(stderr, "%s", file);
-    fd = open("board.html", O_RDWR|O_APPEND, 0664);
+    fd = open("board.html", O_RDWR, 0664);
     strcpy(type, "text/html");
+    
 
 
     //Fields for new message
@@ -146,8 +156,8 @@ void processRequest(int socket) {
         //Get time
         time_t tim = time(NULL);
         struct tm *tm = localtime(&tim);
-        char s[64];
-        size_t ret = strftime(s, sizeof(s), "%c", tm);
+        char datetime[64];
+        size_t ret = strftime(datetime, sizeof(datetime), "%c", tm);
 
         int t = 0;
         int u = 0;
@@ -174,40 +184,72 @@ void processRequest(int socket) {
 
         //Get Message
         i += 5;
+        int newlineCounter = 0;
         for (i; i < MAXFILELENGTH; i ++) {
             if (file[i] == '&') {
                 break;
             }
-            message[m] = file[i];
+            if (file[i] == '+') {
+                message[m] = ' ';
+            }  else {
+                message[m] = file[i];
+            }
             m += 1;
+            newlineCounter += 1;
+            if (newlineCounter >= 40 && message[m-1] == ' ') {
+                message[m] = '<';
+                message[m + 1] = 'b';
+                message[m + 2] = 'r';
+                message[m + 3] = '>';
+                m += 4;
+                newlineCounter = 0;
+            }
         }
 
-        fprintf(stderr, "%s", message);
+        //fprintf(stderr, "%s", message);
 
-        lseek(fd, BOARDSIZE, SEEK_CUR);
-        write(fd, "<html> \
-            <body> \
-                <p> \
-                    Topic - DateTime \
-                </p> \
-            </body> \
-        </html>\n", strlen("<html> \
-            <body> \
-                <p> \
-                    Topic - DateTime \
-                </p> \
-            </body> \
-        </html>\n"));
+
+        //Define Output Message
+        char *output = malloc(MAXOUTPUTLENGTH + 1);
+        memset(output, '\0', MAXTOPICLENGTH + 1);
+
+        strcat(output, "<html> <body> <p>");
+        strcat(output, "<b>");
+        strcat(output, topic);
+        strcat(output, "</b>");
+        strcat(output, " - ");
+        strcat(output, datetime);
+        strcat(output, "</p><p>");
+        strcat(output, message);
+        strcat(output, "</p><p> Posted By: ");
+        strcat(output, "<b>");
+        strcat(output, username);
+        strcat(output, "</b>");
+        strcat(output, "</p> </body>  </html> ");
+        strcat(output, "\n");
+
+
+        //fprintf(stderr, "%s\n", output);
+
+        //Add to list of messages
+        messages[numOfMsgs] = output;
+        numOfMsgs += 1;
+
+        //free(output);
     }
 
+
+    
 
     //Execute request by creating a child process and wait before exiting to ensure request is met before closing socket
     int ret = fork();
     if (ret == 0){
         //Valid file
         if (fd != -1) {
-            int length = lseek(fd, 0L, SEEK_END);
+            
             lseek(fd, 0, SEEK_SET);
+            int length = lseek(fd, 0L, SEEK_END);
+            lseek(fd, BOARDSIZE, SEEK_SET);
 
             //fprintf(stderr, "%d", length);
             char lengthStr[100];
@@ -223,6 +265,18 @@ void processRequest(int socket) {
             write(socket, clrf, 2);
             write(socket, clrf, 2);
             //Transfer text from file to client request
+            int ret = fork();
+            if (ret == 0) {
+                for (int i = numOfMsgs-1; i >= 0; i --) {
+                    for (int x = 0; x <strlen(messages[i]); x++) {
+                        write(fd, &messages[i][x], 1);
+                        fprintf(stderr, "%c", messages[i][x]);
+                    }
+                }
+            }
+            waitpid(ret, NULL, 0);
+            
+            lseek(fd, 0L, SEEK_SET);
             while(read(fd, &hold, 1)) {
                 write(socket, &hold, 1);
             }
@@ -233,6 +287,6 @@ void processRequest(int socket) {
     //Close and free unused vars
     close(fd);
     free(type);
-    free(file);
+    //free(file);
 
 }
