@@ -12,6 +12,7 @@
 #define PORT 1500
 #define MAXQ 5
 #define MAXFILELENGTH 100
+#define MAXTYPELENGTH 15
 
 void processRequest(int);
 
@@ -72,18 +73,17 @@ int main() {
 
         //Process client request
         processRequest(slaveSocket);
-        
 
-        //Close client connection
+        //Close slave socket
         close(slaveSocket);
+        
     }
    
 
 }
 
 void processRequest(int socket) {
-    const char * prompt = "Hello";
-    write(socket, prompt, strlen(prompt));
+    char *clrf = "\r\n";
     
 
     //Read http request
@@ -103,14 +103,49 @@ void processRequest(int socket) {
         }
     }
     
-    int fd;
+    int fd = -1;
+    char *type = (char *)malloc(MAXTYPELENGTH);
     //Set file to home directory if first request
     if (strcmp("/", file) == 0 ) {
-        fd = open(file, O_RDONLY, 0664);
+        fd = open("home.html", O_RDONLY, 0664);
+        strcpy(type, "text/html");
     }
 
+    //Execute request by creating a child process and wait before exiting to ensure request is met before closing socket
+    int ret = fork();
+    if (ret == 0){
+        //Valid file
+        if (fd != -1) {
+            int length = lseek(fd, 0L, SEEK_END);
+            lseek(fd, 0, SEEK_SET);
 
+            char lengthStr[100];
+            sprintf(lengthStr, "%d", length);
+
+            write(socket, "HTTP/1.1 200 OK", strlen("HTTP/1.1 200 OK"));
+            write(socket, clrf, 2);
+            write(socket, "Content-length: ", strlen("Content-length: "));
+            write(socket, lengthStr, strlen(lengthStr));
+            write(socket, clrf, 2);
+            write(socket, "Content-type: ", strlen("Content-type: "));
+            write(socket, type, strlen(type));
+            write(socket, clrf, 2);
+            write(socket, clrf, 2);
+            //Transfer text from file to client request
+            while(read(fd, &hold, 1)) {
+                write(socket, &hold, 1);
+            }
+        }
+    }
+    waitpid(ret, NULL, 0);
+    
+    close(socket);
+    close(fd);
+    free(type);
     free(file);
+
+   
+
 
 
 
