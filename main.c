@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include<stdlib.h>
+#include <stdlib.h>
 
 
 #include <sys/socket.h>
@@ -7,16 +7,20 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <fcntl.h>
+#include <pthread.h>
 
 //Constants
 #define PORT 1500
-#define MAXQ 5
+#define MAXQ 100
 #define MAXFILELENGTH 100
 #define MAXTYPELENGTH 15
 
 char *clrf = "\r\n";
 
+pthread_mutex_t mutex;
+
 void processRequest(int);
+void threadRequest(int);
 
 int main() {
     
@@ -73,15 +77,23 @@ int main() {
             exit( -1 );
         }
 
-        //Process client request
-        processRequest(slaveSocket);
+        //Create thread for each client request
+        pthread_t t;
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
 
-        //Close slave socket
-        close(slaveSocket);
-        
+
+        //Process client request
+        pthread_create(&t, &attr, (void *(*)(void *)) threadRequest, (void *)slaveSocket);
+
     }
    
 
+}
+void threadRequest(int socket) {
+    processRequest(socket);
+    shutdown(socket, SHUT_RDWR);
 }
 
 void processRequest(int socket) {
@@ -141,7 +153,6 @@ void processRequest(int socket) {
     
     fprintf(stderr, "%d", fd);
     //Close and free unused vars
-    close(socket);
     close(fd);
     free(type);
     free(file);
