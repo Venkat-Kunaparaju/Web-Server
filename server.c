@@ -123,15 +123,15 @@ void processRequest(int socket) {
         fd = open("home.html", O_RDONLY, 0664);
         strcpy(type, "text/html");
     }
+    fprintf(stderr, "%s", file);
 
 
     //If name request then redirect to message board page
     char buff[7];
     memcpy(buff, &file[1], 6);
     buff[6] = '\0';
-    fprintf(stderr, "\n%s", buff);
     if (strcmp("?name=", buff) == 0) {
-        fd = open("home.html", O_RDONLY, 0664);
+        fd = open("board.html", O_RDONLY, 0664);
         strcpy(type, "text/html");
     }
 
