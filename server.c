@@ -8,12 +8,16 @@
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <time.h>
 
 //Constants
 #define PORT 1500
 #define MAXQ 100
-#define MAXFILELENGTH 100
+#define MAXFILELENGTH 700
 #define MAXTYPELENGTH 15
+#define MAXTOPICLENGTH 50
+#define MAXUSERNAMELENGTH 50
+#define MAXMESSEAGELENGTH 500
 #define BOARDSIZE 649
 
 char *clrf = "\r\n";
@@ -120,19 +124,65 @@ void processRequest(int socket) {
     //Open Board
     int fd = -1;
     char *type = (char *)malloc(MAXTYPELENGTH);
-    fprintf(stderr, "%s", file);
+    //fprintf(stderr, "%s", file);
     fd = open("board.html", O_RDWR|O_APPEND, 0664);
     strcpy(type, "text/html");
 
 
     //Fields for new message
-    char 
+    char *topic = (char *)malloc(MAXTOPICLENGTH + 1);
+    char *username = (char *)malloc(MAXUSERNAMELENGTH + 1);
+    char *message = (char *)malloc(MAXMESSEAGELENGTH + 1);
+    memset(topic, '\0', MAXTOPICLENGTH + 1);
+    memset(username, '\0', MAXUSERNAMELENGTH + 1);
+    memset(message, '\0', MAXMESSEAGELENGTH + 1);
 
     //Check if message request, then update page
     char buff[7];
     memcpy(buff, &file[1], 6);
     buff[6] = '\0';
     if (strcmp(buff, "?topic") == 0) {
+        
+        //Get time
+        time_t tim = time(NULL);
+        struct tm *tm = localtime(&tim);
+        char s[64];
+        size_t ret = strftime(s, sizeof(s), "%c", tm);
+
+        int t = 0;
+        int u = 0;
+        int m = 0;
+        int i = 8;
+        //Get topic
+        for (i; i < MAXFILELENGTH; i ++) {
+            if (file[i] == '&') {
+                break;
+            }
+            topic[t] = file[i];
+            t += 1;
+        }
+
+        //Get Username
+        i += 6;
+        for (i; i < MAXFILELENGTH; i ++) {
+            if (file[i] == '&') {
+                break;
+            }
+            username[u] = file[i];
+            u += 1;
+        }
+
+        //Get Message
+        i += 5;
+        for (i; i < MAXFILELENGTH; i ++) {
+            if (file[i] == '&') {
+                break;
+            }
+            message[m] = file[i];
+            m += 1;
+        }
+
+        fprintf(stderr, "%s", message);
 
         lseek(fd, BOARDSIZE, SEEK_CUR);
         write(fd, "<html> \
