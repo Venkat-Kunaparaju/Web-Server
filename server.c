@@ -19,12 +19,10 @@
 #define MAXUSERNAMELENGTH 50
 #define MAXMESSEAGELENGTH 500
 #define MAXOUTPUTLENGTH 1000
-#define BOARDSIZE 644
+#define BOARDSIZE 649
 #define MAXMESSAGES 100
 
 char *clrf = "\r\n";
-char *messages[MAXMESSAGES];
-int numOfMsgs = 0;
 
 pthread_mutex_t mutex;
 
@@ -134,7 +132,7 @@ void processRequest(int socket) {
     int fd = -1;
     char *type = (char *)malloc(MAXTYPELENGTH);
     //fprintf(stderr, "%s", file);
-    fd = open("board.html", O_RDWR, 0664);
+    fd = open("board.html", O_RDWR | O_APPEND, 0664);
     strcpy(type, "text/html");
     
 
@@ -231,11 +229,10 @@ void processRequest(int socket) {
 
         //fprintf(stderr, "%s\n", output);
 
-        //Add to list of messages
-        messages[numOfMsgs] = output;
-        numOfMsgs += 1;
+        //Append output to file
+        write(fd, output, strlen(output));
 
-        //free(output);
+        free(output);
     }
 
 
@@ -249,7 +246,7 @@ void processRequest(int socket) {
             
             lseek(fd, 0, SEEK_SET);
             int length = lseek(fd, 0L, SEEK_END);
-            lseek(fd, BOARDSIZE, SEEK_SET);
+            lseek(fd, 0, SEEK_SET);
 
             //fprintf(stderr, "%d", length);
             char lengthStr[100];
@@ -265,18 +262,7 @@ void processRequest(int socket) {
             write(socket, clrf, 2);
             write(socket, clrf, 2);
             //Transfer text from file to client request
-            int ret = fork();
-            if (ret == 0) {
-                for (int i = numOfMsgs-1; i >= 0; i --) {
-                    for (int x = 0; x <strlen(messages[i]); x++) {
-                        write(fd, &messages[i][x], 1);
-                        fprintf(stderr, "%c", messages[i][x]);
-                    }
-                }
-            }
-            waitpid(ret, NULL, 0);
             
-            lseek(fd, 0L, SEEK_SET);
             while(read(fd, &hold, 1)) {
                 write(socket, &hold, 1);
             }
@@ -287,7 +273,7 @@ void processRequest(int socket) {
     //Close and free unused vars
     close(fd);
     free(type);
-    //free(file);
+    free(file);
 
 }
 
