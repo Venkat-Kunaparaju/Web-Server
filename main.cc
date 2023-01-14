@@ -6,13 +6,15 @@
 #include <unistd.h>
 #include <string.h>
 #include <netinet/in.h>
-
-
-
+#include <fcntl.h>
 
 //Constants
 #define PORT 1500
 #define MAXQ 5
+#define MAXFILELENGTH 100
+
+void processRequest(int);
+
 int main() {
     
 
@@ -64,17 +66,53 @@ int main() {
                     (socklen_t*)&aSize);
 
         if ( slaveSocket < 0 ) {
-            perror( "accept" );
+            perror( "Accept error" );
             exit( -1 );
         }
 
-        //Test writing to client
-        const char * prompt = "Hello";
-        write(slaveSocket, prompt, strlen(prompt));
+        //Process client request
+        processRequest(slaveSocket);
+        
 
         //Close client connection
         close(slaveSocket);
     }
    
+
+}
+
+void processRequest(int socket) {
+    const char * prompt = "Hello";
+    write(socket, prompt, strlen(prompt));
+    
+
+    //Read http request
+    unsigned char hold;
+
+    //Get file name
+    char *file = (char *)malloc(MAXFILELENGTH + 1);
+    memset(file, '\0', MAXFILELENGTH+1);
+    int i = 0;
+    while(read(socket, &hold, 1)) {
+        if (hold == ' ') {
+            while(read(socket, &hold, 1) && hold != ' ') {
+                file[i] = hold;
+                i += 1;
+            }
+            break;
+        }
+    }
+    
+    int fd;
+    //Set file to home directory if first request
+    if (strcmp("/", file) == 0 ) {
+        fd = open(file, O_RDONLY, 0664);
+    }
+
+
+    free(file);
+
+
+
 
 }
