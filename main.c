@@ -14,6 +14,8 @@
 #define MAXFILELENGTH 100
 #define MAXTYPELENGTH 15
 
+char *clrf = "\r\n";
+
 void processRequest(int);
 
 int main() {
@@ -83,8 +85,6 @@ int main() {
 }
 
 void processRequest(int socket) {
-    char *clrf = "\r\n";
-    
 
     //Read http request
     unsigned char hold;
@@ -143,11 +143,5 @@ void processRequest(int socket) {
     close(fd);
     free(type);
     free(file);
-
-   
-
-
-
-
 
 }
