@@ -120,6 +120,10 @@ void processRequest(int socket) {
     int fd = -1;
     char *type = (char *)malloc(MAXTYPELENGTH);
     //Set file to home directory if first request
+    if (strcmp("/", file) == 0) {
+        fd = open("home.html", O_RDONLY, 0664);
+        strcpy(type, "text/html");
+    }
     fd = open("home.html", O_RDONLY, 0664);
     strcpy(type, "text/html");
 
@@ -151,7 +155,6 @@ void processRequest(int socket) {
     }
     waitpid(ret, NULL, 0);
     
-    fprintf(stderr, "%d", fd);
     //Close and free unused vars
     close(fd);
     free(type);
