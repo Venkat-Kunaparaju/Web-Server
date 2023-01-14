@@ -14,6 +14,7 @@
 #define MAXQ 100
 #define MAXFILELENGTH 100
 #define MAXTYPELENGTH 15
+#define BOARDSIZE 649
 
 char *clrf = "\r\n";
 
@@ -116,11 +117,39 @@ void processRequest(int socket) {
         //fprintf(stderr, "%c", hold);
     }
     
+    //Open Board
     int fd = -1;
     char *type = (char *)malloc(MAXTYPELENGTH);
     fprintf(stderr, "%s", file);
-    fd = open("board.html", O_RDONLY, 0664);
+    fd = open("board.html", O_RDWR|O_APPEND, 0664);
     strcpy(type, "text/html");
+
+
+    //Fields for new message
+    char 
+
+    //Check if message request, then update page
+    char buff[7];
+    memcpy(buff, &file[1], 6);
+    buff[6] = '\0';
+    if (strcmp(buff, "?topic") == 0) {
+
+        lseek(fd, BOARDSIZE, SEEK_CUR);
+        write(fd, "<html> \
+            <body> \
+                <p> \
+                    Topic - DateTime \
+                </p> \
+            </body> \
+        </html>\n", strlen("<html> \
+            <body> \
+                <p> \
+                    Topic - DateTime \
+                </p> \
+            </body> \
+        </html>\n"));
+    }
+
 
     //Execute request by creating a child process and wait before exiting to ensure request is met before closing socket
     int ret = fork();
@@ -130,6 +159,7 @@ void processRequest(int socket) {
             int length = lseek(fd, 0L, SEEK_END);
             lseek(fd, 0, SEEK_SET);
 
+            //fprintf(stderr, "%d", length);
             char lengthStr[100];
             sprintf(lengthStr, "%d", length);
 
