@@ -97,7 +97,10 @@ int main() {
         //Process client request
         pthread_create(&t, &attr, (void *(*)(void *)) threadRequest, (void *)slaveSocket);
 
+        pthread_join(t, NULL);
+
     }
+    pthread_mutex_destroy(&mutex);
    
 
 }
@@ -137,20 +140,17 @@ void processRequest(int socket) {
     
 
 
-    //Fields for new message
-    char *topic = (char *)malloc(MAXTOPICLENGTH + 1);
-    char *username = (char *)malloc(MAXUSERNAMELENGTH + 1);
-    char *message = (char *)malloc(MAXMESSEAGELENGTH + 1);
-    memset(topic, '\0', MAXTOPICLENGTH + 1);
-    memset(username, '\0', MAXUSERNAMELENGTH + 1);
-    memset(message, '\0', MAXMESSEAGELENGTH + 1);
+   
 
     //Check if message request, then update page
     char buff[7];
     memcpy(buff, &file[1], 6);
     buff[6] = '\0';
     if (strcmp(buff, "?topic") == 0) {
-        
+         //Fields for new message
+        char *topic = (char *)malloc(MAXTOPICLENGTH + 1);
+        char *username = (char *)malloc(MAXUSERNAMELENGTH + 1);
+        char *message = (char *)malloc(MAXMESSEAGELENGTH + 1);
         //Get time
         time_t tim = time(NULL);
         struct tm *tm = localtime(&tim);
@@ -169,6 +169,9 @@ void processRequest(int socket) {
             topic[t] = file[i];
             t += 1;
         }
+        topic[t] = '\0';
+
+        
 
         //Get Username
         i += 6;
@@ -179,6 +182,8 @@ void processRequest(int socket) {
             username[u] = file[i];
             u += 1;
         }
+        username[u] = '\0';
+        
 
         //Get Message
         i += 5;
@@ -204,37 +209,50 @@ void processRequest(int socket) {
             }
         }
 
-        //fprintf(stderr, "%s", message);
+        message[m] = '\0';
 
+        
+
+        //fprintf(stderr, "%s", message);
+        //fprintf(stderr, "%s", username);
 
         //Define Output Message
-        char *output = malloc(MAXOUTPUTLENGTH + 1);
-        memset(output, '\0', MAXTOPICLENGTH + 1);
+        char output[MAXOUTPUTLENGTH + 1];
+
+        char tempTopic[MAXTOPICLENGTH+1];
+        strcpy(tempTopic, topic);
+        
+        char tempUsername[MAXUSERNAMELENGTH + 1];
+        strcpy(tempUsername, username);
+
+        char tempMessage[MAXMESSEAGELENGTH + 1];
+        strcpy(tempMessage, message);
+
+        //free(username);
+        //free(message);
+        //free(topic);
+
 
         strcat(output, "<html> <body> <p>");
         strcat(output, "<b>");
-        strcat(output, topic);
+        strcat(output, tempTopic);
         strcat(output, "</b>");
         strcat(output, " - ");
         strcat(output, datetime);
         strcat(output, "</p><p>");
-        strcat(output, message);
+        strcat(output, tempMessage);
         strcat(output, "</p><p> Posted By: ");
         strcat(output, "<b>");
-        strcat(output, username);
+        strcat(output, tempUsername);
         strcat(output, "</b>");
         strcat(output, "</p> </body>  </html> ");
         strcat(output, "\n");
 
-
-        //fprintf(stderr, "%s\n", output);
-
         //Append output to file
         write(fd, output, strlen(output));
 
-        free(output);
+        //free(output);
     }
-
 
     
 
@@ -263,6 +281,7 @@ void processRequest(int socket) {
             write(socket, clrf, 2);
             //Transfer text from file to client request
             
+           
             while(read(fd, &hold, 1)) {
                 write(socket, &hold, 1);
             }
@@ -272,8 +291,8 @@ void processRequest(int socket) {
 
     //Close and free unused vars
     close(fd);
-    free(type);
-    free(file);
+    //free(type);
+    //free(file);
 
 }
 
