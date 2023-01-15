@@ -117,8 +117,7 @@ void processRequest(int socket) {
     unsigned char hold;
 
     //Get file name
-    char *file = (char *)malloc(MAXFILELENGTH + 1);
-    memset(file, '\0', MAXFILELENGTH+1);
+    char file[MAXFILELENGTH + 1];
     int i = 0;
     while(read(socket, &hold, 1)) {
         if (hold == ' ') {
@@ -130,10 +129,11 @@ void processRequest(int socket) {
         }
         //fprintf(stderr, "%c", hold);
     }
+    file[i] = '\0';
     
     //Open Board
     int fd = -1;
-    char *type = (char *)malloc(MAXTYPELENGTH);
+    char type[MAXTYPELENGTH];
     //fprintf(stderr, "%s", file);
     fd = open("board.html", O_RDWR | O_APPEND, 0664);
     strcpy(type, "text/html");
@@ -148,9 +148,9 @@ void processRequest(int socket) {
     buff[6] = '\0';
     if (strcmp(buff, "?topic") == 0) {
          //Fields for new message
-        char *topic = (char *)malloc(MAXTOPICLENGTH + 1);
-        char *username = (char *)malloc(MAXUSERNAMELENGTH + 1);
-        char *message = (char *)malloc(MAXMESSEAGELENGTH + 1);
+        char topic[MAXTOPICLENGTH + 1];
+        char username[MAXUSERNAMELENGTH + 1];
+        char message[MAXMESSEAGELENGTH + 1];
         //Get time
         time_t tim = time(NULL);
         struct tm *tm = localtime(&tim);
@@ -166,7 +166,7 @@ void processRequest(int socket) {
             if (file[i] == '&') {
                 break;
             }
-            topic[t] = file[i];
+            strncpy(&topic[t], &file[i], 1);
             t += 1;
         }
         topic[t] = '\0';
@@ -179,23 +179,25 @@ void processRequest(int socket) {
             if (file[i] == '&') {
                 break;
             }
-            username[u] = file[i];
+            strncpy(&username[u], &file[i], 1);
             u += 1;
         }
         username[u] = '\0';
         
-
+        //fprintf(stderr, "username: %s\n", username);
+        //fprintf(stderr, "topic: %s\n", topic);
         //Get Message
         i += 5;
         int newlineCounter = 0;
         for (i; i < MAXFILELENGTH; i ++) {
-            if (file[i] == '&') {
+            //fprintf(stderr, "%s", username);
+            if (file[i] == '&' || file[i] == '\0') {
                 break;
             }
             if (file[i] == '+') {
                 message[m] = ' ';
             }  else {
-                message[m] = file[i];
+                strncpy(&message[m], &file[i], 1);
             }
             m += 1;
             newlineCounter += 1;
@@ -213,8 +215,9 @@ void processRequest(int socket) {
 
         
 
-        //fprintf(stderr, "%s", message);
-        //fprintf(stderr, "%s", username);
+        //fprintf(stderr, "message: %s\n", message);
+        //fprintf(stderr, "username: %s\n", username);
+        //fprintf(stderr, "topic: %s\n", topic);
 
         //Define Output Message
         char output[MAXOUTPUTLENGTH + 1];
