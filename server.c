@@ -105,10 +105,8 @@ int main() {
 
 }
 void threadRequest(int socket) {
-    pthread_mutex_lock(&mutex);
     processRequest(socket);
     shutdown(socket, SHUT_RDWR);
-    pthread_mutex_unlock(&mutex);
 }
 
 void processRequest(int socket) {
@@ -249,10 +247,12 @@ void processRequest(int socket) {
         strcat(output, tempUsername);
         strcat(output, "</b>");
         strcat(output, "</p> </body>  </html> ");
-        strcat(output, "\n");
+        strcat(output, "\n----------------------------------------\n");
 
+        pthread_mutex_lock(&mutex);
         //Append output to file
         write(fd, output, strlen(output));
+        pthread_mutex_unlock(&mutex);
 
         //free(output);
     }
@@ -272,6 +272,7 @@ void processRequest(int socket) {
             //fprintf(stderr, "%d", length);
             char lengthStr[100];
             sprintf(lengthStr, "%d", length);
+            pthread_mutex_lock(&mutex);
 
             write(socket, "HTTP/1.1 200 OK", strlen("HTTP/1.1 200 OK"));
             write(socket, clrf, 2);
@@ -288,6 +289,7 @@ void processRequest(int socket) {
             while(read(fd, &hold, 1)) {
                 write(socket, &hold, 1);
             }
+            pthread_mutex_unlock(&mutex);
         }
     }
     waitpid(ret, NULL, 0);
