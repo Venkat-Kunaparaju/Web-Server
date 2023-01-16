@@ -117,19 +117,48 @@ void processRequest(int socket) {
     //Get file name
     char file[MAXFILELENGTH + 1];
     int i = 0;
+
+    int check = 0;
+
+    int post = 1;
     while(read(socket, &hold, 1)) {
-        if (hold == ' ') {
+
+        //Get request
+        if (hold == ' ' && check == 3) {
+            post = 0;
             while(read(socket, &hold, 1) && hold != ' ') {
                 file[i] = hold;
                 i += 1;
             }
             break;
+            
         }
-        //fprintf(stderr, "%c", hold);
+
+        //Hold request
+        if (hold == ' ' && check == 4) {
+            while(read(socket, &hold, 1)) {
+                file[i] = hold;
+                i += 1;
+                if (file[i-1] == 10 && file[i-2] == 13 && file[i-3] == 10 && file[i-4] == 13) {
+                    break;
+                }
+            }
+            i = 0;
+            while(read(socket, &hold, 1) && hold != '*') {
+                file[i] = hold;
+                i += 1;
+            }
+            break;
+        }
+        check += 1;
+        
     }
     file[i] = '\0';
 
-    fprintf(stderr, "%s", file);
+    //fprintf(stderr, "%s", file);
+
+
+    
     
     //Open Board
     int fd = -1;
@@ -141,130 +170,135 @@ void processRequest(int socket) {
 
 
    
+    //if post request then figure out which type of post request
+
 
     //Check if message request, then update page
-    char buff[7];
-    memcpy(buff, &file[1], 6);
-    buff[6] = '\0';
-    if (strcmp(buff, "?topic") == 0) {
-         //Fields for new message
-        char topic[MAXTOPICLENGTH + 1];
-        char username[MAXUSERNAMELENGTH + 1];
-        char message[MAXMESSEAGELENGTH + 1];
-        //Get time
-        time_t tim = time(NULL);
-        struct tm *tm = localtime(&tim);
-        char datetime[64];
-        size_t ret = strftime(datetime, sizeof(datetime), "%c", tm);
+    char buff[6];
+    memcpy(buff, &file[0], 5);
+    buff[5] = '\0';
+    if (post == 1) {
+        if (strcmp(buff, "topic") == 0) {
+            //Fields for new message
+            char topic[MAXTOPICLENGTH + 1];
+            char username[MAXUSERNAMELENGTH + 1];
+            char message[MAXMESSEAGELENGTH + 1];
+            //Get time
+            time_t tim = time(NULL);
+            struct tm *tm = localtime(&tim);
+            char datetime[64];
+            size_t ret = strftime(datetime, sizeof(datetime), "%c", tm);
 
-        int t = 0;
-        int u = 0;
-        int m = 0;
-        int i = 8;
-        //Get topic
-        for (i; i < MAXFILELENGTH; i ++) {
-            if (file[i] == '&') {
-                break;
+            int t = 0;
+            int u = 0;
+            int m = 0;
+            int i = 6;
+            //Get topic
+            for (i; i < MAXFILELENGTH; i ++) {
+                if (file[i] == '&') {
+                    break;
+                }
+                if (file[i] == '+') {
+                    topic[t] = ' ';
+                }  else {
+                    strncpy(&topic[t], &file[i], 1);
+                }
+                t += 1;
             }
-            if (file[i] == '+') {
-                topic[t] = ' ';
-            }  else {
-                strncpy(&topic[t], &file[i], 1);
+            topic[t] = '\0';
+
+            
+
+            //Get Username
+            i += 6;
+            for (i; i < MAXFILELENGTH; i ++) {
+                if (file[i] == '&') {
+                    break;
+                }
+                if (file[i] == '+') {
+                    username[u] = ' ';
+                }  else {
+                    strncpy(&username[u], &file[i], 1);
+                }
+                u += 1;
             }
-            t += 1;
+            username[u] = '\0';
+            
+            //fprintf(stderr, "username: %s\n", username);
+            //fprintf(stderr, "topic: %s\n", topic);
+            //Get Message
+            i += 5;
+            int newlineCounter = 0;
+            for (i; i < MAXFILELENGTH; i ++) {
+                //fprintf(stderr, "%s", username);
+                if (file[i] == '&' || file[i] == '\0') {
+                    break;
+                }
+                if (file[i] == '+') {
+                    message[m] = ' ';
+                }  else {
+                    strncpy(&message[m], &file[i], 1);
+                }
+                m += 1;
+                newlineCounter += 1;
+                if (newlineCounter >= 40 && message[m-1] == ' ') {
+                    message[m] = '<';
+                    message[m + 1] = 'b';
+                    message[m + 2] = 'r';
+                    message[m + 3] = '>';
+                    m += 4;
+                    newlineCounter = 0;
+                }
+            }
+
+            message[m] = '\0';
+
+        
+
+            //fprintf(stderr, "message: %s\n", message);
+            //fprintf(stderr, "username: %s\n", username);
+            //fprintf(stderr, "topic: %s\n", topic);
+
+            //Define Output Message
+            char output[MAXOUTPUTLENGTH + 1];
+
+            char tempTopic[MAXTOPICLENGTH+1];
+            strcpy(tempTopic, topic);
+            
+            char tempUsername[MAXUSERNAMELENGTH + 1];
+            strcpy(tempUsername, username);
+
+            char tempMessage[MAXMESSEAGELENGTH + 1];
+            strcpy(tempMessage, message);
+
+            //free(username);
+            //free(message);
+            //free(topic);
+
+
+            strcat(output, "<html> <body> <p>");
+            strcat(output, "<b>");
+            strcat(output, tempTopic);
+            strcat(output, "</b>");
+            strcat(output, " - ");
+            strcat(output, datetime);
+            strcat(output, "</p><p>");
+            strcat(output, tempMessage);
+            strcat(output, "</p><p> Posted By: ");
+            strcat(output, "<b>");
+            strcat(output, tempUsername);
+            strcat(output, "</b>");
+            strcat(output, "</p> </body>  </html> ");
+            strcat(output, "\n----------------------------------------\n");
+
+            pthread_mutex_lock(&mutex);
+            //Append output to file
+            write(fd, output, strlen(output));
+            pthread_mutex_unlock(&mutex);
+
+            //free(output);
         }
-        topic[t] = '\0';
 
-        
-
-        //Get Username
-        i += 6;
-        for (i; i < MAXFILELENGTH; i ++) {
-            if (file[i] == '&') {
-                break;
-            }
-            if (file[i] == '+') {
-                username[u] = ' ';
-            }  else {
-                strncpy(&username[u], &file[i], 1);
-            }
-            u += 1;
-        }
-        username[u] = '\0';
-        
-        //fprintf(stderr, "username: %s\n", username);
-        //fprintf(stderr, "topic: %s\n", topic);
-        //Get Message
-        i += 5;
-        int newlineCounter = 0;
-        for (i; i < MAXFILELENGTH; i ++) {
-            //fprintf(stderr, "%s", username);
-            if (file[i] == '&' || file[i] == '\0') {
-                break;
-            }
-            if (file[i] == '+') {
-                message[m] = ' ';
-            }  else {
-                strncpy(&message[m], &file[i], 1);
-            }
-            m += 1;
-            newlineCounter += 1;
-            if (newlineCounter >= 40 && message[m-1] == ' ') {
-                message[m] = '<';
-                message[m + 1] = 'b';
-                message[m + 2] = 'r';
-                message[m + 3] = '>';
-                m += 4;
-                newlineCounter = 0;
-            }
-        }
-
-        message[m] = '\0';
-
-        
-
-        //fprintf(stderr, "message: %s\n", message);
-        //fprintf(stderr, "username: %s\n", username);
-        //fprintf(stderr, "topic: %s\n", topic);
-
-        //Define Output Message
-        char output[MAXOUTPUTLENGTH + 1];
-
-        char tempTopic[MAXTOPICLENGTH+1];
-        strcpy(tempTopic, topic);
-        
-        char tempUsername[MAXUSERNAMELENGTH + 1];
-        strcpy(tempUsername, username);
-
-        char tempMessage[MAXMESSEAGELENGTH + 1];
-        strcpy(tempMessage, message);
-
-        //free(username);
-        //free(message);
-        //free(topic);
-
-
-        strcat(output, "<html> <body> <p>");
-        strcat(output, "<b>");
-        strcat(output, tempTopic);
-        strcat(output, "</b>");
-        strcat(output, " - ");
-        strcat(output, datetime);
-        strcat(output, "</p><p>");
-        strcat(output, tempMessage);
-        strcat(output, "</p><p> Posted By: ");
-        strcat(output, "<b>");
-        strcat(output, tempUsername);
-        strcat(output, "</b>");
-        strcat(output, "</p> </body>  </html> ");
-        strcat(output, "\n----------------------------------------\n");
-
-        pthread_mutex_lock(&mutex);
-        //Append output to file
-        write(fd, output, strlen(output));
-        pthread_mutex_unlock(&mutex);
-
-        //free(output);
     }
 
     
