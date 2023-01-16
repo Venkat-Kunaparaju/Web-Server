@@ -164,7 +164,11 @@ void processRequest(int socket) {
             if (file[i] == '&') {
                 break;
             }
-            strncpy(&topic[t], &file[i], 1);
+            if (file[i] == '+') {
+                topic[t] = ' ';
+            }  else {
+                strncpy(&topic[t], &file[i], 1);
+            }
             t += 1;
         }
         topic[t] = '\0';
@@ -177,7 +181,11 @@ void processRequest(int socket) {
             if (file[i] == '&') {
                 break;
             }
-            strncpy(&username[u], &file[i], 1);
+            if (file[i] == '+') {
+                username[u] = ' ';
+            }  else {
+                strncpy(&username[u], &file[i], 1);
+            }
             u += 1;
         }
         username[u] = '\0';
