@@ -128,6 +128,8 @@ void processRequest(int socket) {
         //fprintf(stderr, "%c", hold);
     }
     file[i] = '\0';
+
+    fprintf(stderr, "%s", file);
     
     //Open Board
     int fd = -1;
