@@ -23,6 +23,7 @@
 #define MAXMESSAGES 100
 
 char *clrf = "\r\n";
+int id = 0;
 
 pthread_mutex_t mutex;
 
@@ -276,6 +277,8 @@ void processRequest(int socket) {
             //free(topic);
 
 
+            pthread_mutex_lock(&mutex);
+
             strcat(output, "<html> <body> <p>");
             strcat(output, "<b>");
             strcat(output, tempTopic);
@@ -288,10 +291,24 @@ void processRequest(int socket) {
             strcat(output, "<b>");
             strcat(output, tempUsername);
             strcat(output, "</b>");
-            strcat(output, "</p> </body>  </html> ");
+            strcat(output, "</p> ");
+
+            strcat(output, " <div class=\"row-fluid\"> <form action=\"\" method=\"post\"> <button name=\"like");
+
+            char lengthStr[100];
+            sprintf(lengthStr, "%d", id);
+            id += 1;
+
+            strcat(output, lengthStr);
+            strcat(output, "*\" value=\"\"> Like </button> </form> <form action=\"\" method=\"post\"> <button name=\"dislike");
+            strcat(output, lengthStr);
+            strcat(output, "*\" value=\"\"> Dislike </button> </form> ");
+
+            strcat(output, " </body> </html> ");
+            
+
             strcat(output, "\n----------------------------------------\n");
 
-            pthread_mutex_lock(&mutex);
             //Append output to file
             write(fd, output, strlen(output));
             pthread_mutex_unlock(&mutex);
