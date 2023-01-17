@@ -178,7 +178,9 @@ void processRequest(int socket) {
     char buff[6];
     memcpy(buff, &file[0], 5);
     buff[5] = '\0';
+    fprintf(stderr, "%s\n", buff);
     if (post == 1) {
+        //Send new message
         if (strcmp(buff, "topic") == 0) {
             //Fields for new message
             char topic[MAXTOPICLENGTH + 1];
@@ -300,7 +302,7 @@ void processRequest(int socket) {
             id += 1;
 
             strcat(output, lengthStr);
-            strcat(output, "*\" value=\"\"> Like </button> </form> <form action=\"\" method=\"post\"> <button name=\"dislike");
+            strcat(output, "*\" value=\"\"> Like </button> </form> <form action=\"\" method=\"post\"> <button name=\"disl");
             strcat(output, lengthStr);
             strcat(output, "*\" value=\"\"> Dislike </button> </form> ");
 
@@ -314,6 +316,14 @@ void processRequest(int socket) {
             pthread_mutex_unlock(&mutex);
 
             //free(output);
+        }
+        //Dislike
+        if (buff[0] == 'd') {
+            fprintf(stderr, "Check dislike");
+
+        }
+        if (buff[0] == 'l') {
+            fprintf(stderr, "Check like");
         }
 
     }
