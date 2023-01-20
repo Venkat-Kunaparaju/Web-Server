@@ -25,6 +25,11 @@
 char *clrf = "\r\n";
 int id = 0;
 
+//Arrays to store message interaction data
+int numLikes[MAXMESSAGES];
+int numDislikes[MAXMESSAGES];
+char numUsername[MAXMESSAGES][MAXUSERNAMELENGTH + 1];
+
 pthread_mutex_t mutex;
 
 void processRequest(int);
@@ -175,9 +180,9 @@ void processRequest(int socket) {
 
 
     //Check if message request, then update page
-    char buff[6];
+    char buff[8];
     memcpy(buff, &file[0], 5);
-    buff[5] = '\0';
+    buff[7] = '\0';
     fprintf(stderr, "%s\n", buff);
     if (post == 1) {
         //Send new message
@@ -299,6 +304,12 @@ void processRequest(int socket) {
 
             char lengthStr[100];
             sprintf(lengthStr, "%d", id);
+            numLikes[id] = 0;
+            numDislikes[id] = 0;
+            memcpy(numUsername[id], username, strlen(username));
+            //fprintf(stderr, "%s\n", numUsername[id]);
+
+
             id += 1;
 
             strcat(output, lengthStr);
@@ -319,11 +330,17 @@ void processRequest(int socket) {
         }
         //Dislike
         if (buff[0] == 'd') {
-            fprintf(stderr, "Check dislike");
+            int tempId = buff[4] - '0';
+            numDislikes[tempId] += 1;
+            //fprintf(stderr, "%s\n", numUsername[tempId]);
+            //fprintf(stderr, "Check dislike");
 
         }
         if (buff[0] == 'l') {
-            fprintf(stderr, "Check like");
+            int tempId = buff[4] - '0';
+            numLikes[tempId] += 1;
+            //fprintf(stderr, "%d", numLikes[tempId]);
+            //fprintf(stderr, "Check like");
         }
 
     }
