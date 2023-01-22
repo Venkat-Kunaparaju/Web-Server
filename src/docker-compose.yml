@@ -47,9 +47,9 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: localhost:22181,localhost:32181,localhost:42181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:19092
     ports:
-      - "9092:9092"
+      - "19092:19092"
 
   broker-2:
     image: confluentinc/cp-kafka:latest
